@@ -18,28 +18,21 @@ class CPU:
     def ram_write(self, MDR, MAR): # MDR ( Memory Data Register )
         self.registers[MAR] = MDR
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
+        # Read in filename's content
+        with open(filename, 'r') as f:
+            lines = f.readlines()
 
-        address = 0
+        instructions = []
+        for elm in lines:
+            temp = elm.split()
+            instructions.append((int(temp[0], 2)))
 
-        # For now, we've just hardcoded a program:
+        print(instructions)
+
+        self.memory = instructions # this works for now?
         
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
-
-
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
@@ -71,27 +64,32 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        # Read the value stored in the program counter to the IR 
-        # ( IR Instruction Register )
 
-        ir = self.pc
+        running = True
+        while running:
+            # Read the value stored in the program counter to the IR 
+            # ( IR Instruction Register )
 
-        # depending on the last 2 digits in a given opcode increment pc by that amt
-        # read the last 2 digits of the ir 
-        opcode = [int(n) for n in str(ir).strip()]
+            ir = self.pc
 
-        if opcode[0] == 1:
-            operand_a = self.memory[ir + 1]
-            pc_move_amt = 2
- 
-        elif opcode[1] == 1:
-            operand_a = self.memory[ir + 1]
-            operand_b = self.memory[ir + 2]
-            pc_move_amt = 3
+            if self.memory[ir] == int(0b00000001): # HLT
+                running = False
+                self.pc += 1
 
+            elif self.memory[ir] == int(0b10000010): # LDI
+                operand_a = self.memory[ir + 1]
+                operand_b = self.memory[ir + 2]
+                self.ram_write(operand_b, operand_a)
+                self.pc += 3
 
-        if self.memory[ir] == 0b00000001: # HLT
-            running = False
+            elif self.memory[ir] == int(0b01000111): # PRN
+                operand_a = self.memory[ir + 1]
+                print(self.ram_read(operand_a))
+                self.pc += 2
 
-        elif self.memory[ir] == 0b10000010: # LDI
-            self.ram_write(operand_b, operand_a)
+            elif self.memory[ir] == int(0b10100010): 
+                operand_a = self.memory[ir + 1]
+                operand_b = self.memory[ir + 2]
+                # self.registers[operand_a] = operand_a * operand_b
+                self.ram_write(self.ram_read(operand_a) * self.ram_read(operand_b), operand_a)
+                self.pc += 3
