@@ -7,15 +7,15 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        memory = [] # holds a maximum of 256 bytes
-        registers = [0] * 8 # 8 general purpose registers
+        self.memory = [] # holds a maximum of 256 bytes
+        self.registers = [0] * 8 # 8 general purpose registers
 
-        pc = 0 # program counter
+        self.pc = 0 # program counter
 
-    def ram_read(self, MAR):
+    def ram_read(self, MAR): # MAR ( Memory Address Register)
         return self.registers[MAR]
     
-    def ram_write(self, MDR, MAR):
+    def ram_write(self, MDR, MAR): # MDR ( Memory Data Register )
         self.registers[MAR] = MDR
 
     def load(self):
@@ -24,7 +24,7 @@ class CPU:
         address = 0
 
         # For now, we've just hardcoded a program:
-
+        
         program = [
             # From print8.ls8
             0b10000010, # LDI R0,8
@@ -71,4 +71,27 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        # Read the value stored in the program counter to the IR 
+        # ( IR Instruction Register )
+
+        ir = self.pc
+
+        # depending on the last 2 digits in a given opcode increment pc by that amt
+        # read the last 2 digits of the ir 
+        opcode = [int(n) for n in str(ir).strip()]
+
+        if opcode[0] == 1:
+            operand_a = self.memory[ir + 1]
+            pc_move_amt = 2
+ 
+        elif opcode[1] == 1:
+            operand_a = self.memory[ir + 1]
+            operand_b = self.memory[ir + 2]
+            pc_move_amt = 3
+
+
+        if self.memory[ir] == 0b00000001: # HLT
+            running = False
+
+        elif self.memory[ir] == 0b10000010: # LDI
+            self.ram_write(operand_b, operand_a)
