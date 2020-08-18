@@ -12,6 +12,40 @@ class CPU:
 
         self.pc = 0 # program counter
 
+        # knows wheather it is running a program or not
+        self.running = False
+
+        # branchtable setup
+        self.branchtable = {}
+        self.branchtable[0b00000001] = self.hlt
+        self.branchtable[0b10000010] = self.ldi
+        self.branchtable[0b01000111] = self.prn
+        self.branchtable[0b10100010] = self.mul
+
+        # initalize the stack
+        self.stack = Stack()
+
+    # Operation handlers
+    def hlt(self, ir):
+        self.running = False
+    
+    def ldi(self, ir):
+        operand_a = self.memory[ir + 1]
+        operand_b = self.memory[ir + 2]
+        self.ram_write(operand_b, operand_a)
+        self.pc += 3
+
+    def prn(self, ir):
+        operand_a = self.memory[ir + 1]
+        print(self.ram_read(operand_a))
+        self.pc += 2
+    
+    def mul(self, ir):
+        operand_a = self.memory[ir + 1]
+        operand_b = self.memory[ir + 2]
+        self.ram_write(self.ram_read(operand_a) * self.ram_read(operand_b), operand_a)
+        self.pc += 3
+
     def ram_read(self, MAR): # MAR ( Memory Address Register)
         return self.registers[MAR]
     
@@ -36,7 +70,7 @@ class CPU:
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
+        if op == "ADD":  
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
         else:
@@ -64,32 +98,10 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-
-        running = True
-        while running:
+        self.running = True
+        while self.running:
             # Read the value stored in the program counter to the IR 
             # ( IR Instruction Register )
-
             ir = self.pc
 
-            if self.memory[ir] == int(0b00000001): # HLT
-                running = False
-                self.pc += 1
-
-            elif self.memory[ir] == int(0b10000010): # LDI
-                operand_a = self.memory[ir + 1]
-                operand_b = self.memory[ir + 2]
-                self.ram_write(operand_b, operand_a)
-                self.pc += 3
-
-            elif self.memory[ir] == int(0b01000111): # PRN
-                operand_a = self.memory[ir + 1]
-                print(self.ram_read(operand_a))
-                self.pc += 2
-
-            elif self.memory[ir] == int(0b10100010): 
-                operand_a = self.memory[ir + 1]
-                operand_b = self.memory[ir + 2]
-                # self.registers[operand_a] = operand_a * operand_b
-                self.ram_write(self.ram_read(operand_a) * self.ram_read(operand_b), operand_a)
-                self.pc += 3
+            self.branchtable[self.memory[ir]](ir)
