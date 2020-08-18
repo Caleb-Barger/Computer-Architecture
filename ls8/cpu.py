@@ -7,7 +7,7 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        self.memory = [] # holds a maximum of 256 bytes
+        self.memory = [0] * 256 # holds a maximum of 256 bytes
         self.registers = [0] * 8 # 8 general purpose registers
 
         self.pc = 0 # program counter
@@ -22,9 +22,6 @@ class CPU:
         self.branchtable[0b01000111] = self.prn
         self.branchtable[0b10100010] = self.mul
 
-        # initalize the stack
-        self.stack = Stack()
-
     # Operation handlers
     def hlt(self, ir):
         self.running = False
@@ -33,18 +30,18 @@ class CPU:
         operand_a = self.memory[ir + 1]
         operand_b = self.memory[ir + 2]
         self.ram_write(operand_b, operand_a)
-        self.pc += 3
+        # self.pc += 3
 
     def prn(self, ir):
         operand_a = self.memory[ir + 1]
         print(self.ram_read(operand_a))
-        self.pc += 2
+        # self.pc += 2
     
     def mul(self, ir):
         operand_a = self.memory[ir + 1]
         operand_b = self.memory[ir + 2]
         self.ram_write(self.ram_read(operand_a) * self.ram_read(operand_b), operand_a)
-        self.pc += 3
+        # self.pc += 3
 
     def ram_read(self, MAR): # MAR ( Memory Address Register)
         return self.registers[MAR]
@@ -52,20 +49,49 @@ class CPU:
     def ram_write(self, MDR, MAR): # MDR ( Memory Data Register )
         self.registers[MAR] = MDR
 
-    def load(self, filename):
+    def load(self, filename): #TODO MAKE THIS BETTER!!!
         """Load a program into memory."""
-        # Read in filename's content
-        with open(filename, 'r') as f:
-            lines = f.readlines()
+        address = 0
+        try:
+            with open(filename) as f:
+                for line in f:
+                    line = line.strip()
+                    temp = line.split()
 
-        instructions = []
-        for elm in lines:
-            temp = elm.split()
-            instructions.append((int(temp[0], 2)))
+                    if len(temp) == 0:
+                        continue
+                    if temp[0][0] == '#':
+                        continue
+                    try:
+                        self.memory[address] = int(temp[0], 2)
+                        # self.memory[address] = bin(int(temp[0], 2))
+                    except ValueError:
+                        print("Invalid Instruction")
+                        sys.exit(1)
 
-        print(instructions)
+                    address += 1
 
-        self.memory = instructions # this works for now?
+        except FileNotFoundError:
+            print(f"could not open {filename}")
+            sys.exit(2)
+
+        # print(self.memory)
+        # for i in self.memory[:10]:
+        #     print(bin(i))
+
+
+        # # Read in filename's content
+        # with open(filename, 'r') as f:
+        #     lines = f.readlines()
+
+        # instructions = []
+        # for elm in lines:
+        #     temp = elm.split()
+        #     instructions.append((int(temp[0], 2)))
+
+        # print(instructions)
+
+        # self.memory = instructions # this works for now?
         
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -105,3 +131,8 @@ class CPU:
             ir = self.pc
 
             self.branchtable[self.memory[ir]](ir)
+
+            # increment pc
+            # mv_amt = (int(bin(self.memory[ir]), 2) >> 6) + 1
+            mv_amt = (self.memory[ir] >> 6) + 1
+            self.pc += mv_amt
