@@ -10,8 +10,6 @@ class CPU:
         self.registers[7] = 0xf4 # this is where the stack will start
         
         self.pc = 0 # program counter
-
-        # knows weather it is running a program or not
         self.running = False
 
         # branchtable setup
