@@ -3,29 +3,6 @@
 import sys
 
 class CPU:
-"""
-      top of RAM
-+-----------------------+
-| FF  I7 vector         |    Interrupt vector table
-| FE  I6 vector         |
-| FD  I5 vector         |
-| FC  I4 vector         |
-| FB  I3 vector         |
-| FA  I2 vector         |
-| F9  I1 vector         |
-| F8  I0 vector         |
-| F7  Reserved          |
-| F6  Reserved          |
-| F5  Reserved          |
-| F4  Key pressed       |    Holds the most recent key pressed on the keyboard
-| F3  Start of Stack    |
-| F2  [more stack]      |    Stack grows down
-| ...                   |
-| 01  [more program]    |
-| 00  Program entry     |    Program loaded upward in memory starting at 0
-+-----------------------+
-    bottom of RAM
-"""
     def __init__(self):
         """Construct a new CPU."""
         self.memory = [0] * 256 # holds a maximum of 256 bytes
@@ -44,6 +21,7 @@ class CPU:
         self.branchtable[0b01000111] = self.prn
         self.branchtable[0b10100010] = self.mul
         self.branchtable[0b01000101] = self.push
+        self.branchtable[0b01000110] = self.pop
 
     # Operation handlers
     def hlt(self, ir):
@@ -64,11 +42,13 @@ class CPU:
         self.ram_write(self.ram_read(operand_a) * self.ram_read(operand_b), operand_a)
 
     def push(self, ir):
-        # decrement register
         self.registers[7] -= 1 
 
-        # copy the value of sp into register
-        self.registers[ir + 1] = self.memory[self.registers[7]] 
+        self.memory[self.registers[7]] = self.registers[self.memory[ir + 1]]
+
+    def pop(self, ir):
+        self.registers[self.memory[ir + 1]] = self.memory[self.registers[7]]
+        self.registers[7] += 1
 
     def ram_read(self, MAR): # MAR ( Memory Address Register)
         return self.registers[MAR]
