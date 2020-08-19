@@ -11,7 +11,7 @@ class CPU:
         
         self.pc = 0 # program counter
 
-        # knows wheather it is running a program or not
+        # knows weather it is running a program or not
         self.running = False
 
         # branchtable setup
