@@ -3,13 +3,35 @@
 import sys
 
 class CPU:
-    """Main CPU class."""
-
+"""
+      top of RAM
++-----------------------+
+| FF  I7 vector         |    Interrupt vector table
+| FE  I6 vector         |
+| FD  I5 vector         |
+| FC  I4 vector         |
+| FB  I3 vector         |
+| FA  I2 vector         |
+| F9  I1 vector         |
+| F8  I0 vector         |
+| F7  Reserved          |
+| F6  Reserved          |
+| F5  Reserved          |
+| F4  Key pressed       |    Holds the most recent key pressed on the keyboard
+| F3  Start of Stack    |
+| F2  [more stack]      |    Stack grows down
+| ...                   |
+| 01  [more program]    |
+| 00  Program entry     |    Program loaded upward in memory starting at 0
++-----------------------+
+    bottom of RAM
+"""
     def __init__(self):
         """Construct a new CPU."""
         self.memory = [0] * 256 # holds a maximum of 256 bytes
         self.registers = [0] * 8 # 8 general purpose registers
-
+        self.registers[7] = 0xf4 # this is where the stack will start
+        
         self.pc = 0 # program counter
 
         # knows wheather it is running a program or not
@@ -21,6 +43,7 @@ class CPU:
         self.branchtable[0b10000010] = self.ldi
         self.branchtable[0b01000111] = self.prn
         self.branchtable[0b10100010] = self.mul
+        self.branchtable[0b01000101] = self.push
 
     # Operation handlers
     def hlt(self, ir):
@@ -30,18 +53,22 @@ class CPU:
         operand_a = self.memory[ir + 1]
         operand_b = self.memory[ir + 2]
         self.ram_write(operand_b, operand_a)
-        # self.pc += 3
 
     def prn(self, ir):
         operand_a = self.memory[ir + 1]
         print(self.ram_read(operand_a))
-        # self.pc += 2
     
     def mul(self, ir):
         operand_a = self.memory[ir + 1]
         operand_b = self.memory[ir + 2]
         self.ram_write(self.ram_read(operand_a) * self.ram_read(operand_b), operand_a)
-        # self.pc += 3
+
+    def push(self, ir):
+        # decrement register
+        self.registers[7] -= 1 
+
+        # copy the value of sp into register
+        self.registers[ir + 1] = self.memory[self.registers[7]] 
 
     def ram_read(self, MAR): # MAR ( Memory Address Register)
         return self.registers[MAR]
@@ -74,24 +101,6 @@ class CPU:
         except FileNotFoundError:
             print(f"could not open {filename}")
             sys.exit(2)
-
-        # print(self.memory)
-        # for i in self.memory[:10]:
-        #     print(bin(i))
-
-
-        # # Read in filename's content
-        # with open(filename, 'r') as f:
-        #     lines = f.readlines()
-
-        # instructions = []
-        # for elm in lines:
-        #     temp = elm.split()
-        #     instructions.append((int(temp[0], 2)))
-
-        # print(instructions)
-
-        # self.memory = instructions # this works for now?
         
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
