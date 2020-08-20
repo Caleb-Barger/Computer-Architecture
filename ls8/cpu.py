@@ -22,7 +22,9 @@ class CPU:
         self.branchtable[0b10100010] = self.mul
         self.branchtable[0b01000101] = self.push
         self.branchtable[0b01000110] = self.pop
-
+        self.branchtable[0b01010000] = self.call
+        self.branchtable[0b00010001] = self.ret
+        self.branchtable[0b10100000] = self.add
     # Operation handlers
     def hlt(self, ir):
         self.running = False
@@ -49,6 +51,26 @@ class CPU:
     def pop(self, ir):
         self.registers[self.memory[ir + 1]] = self.memory[self.registers[7]]
         self.registers[7] += 1
+
+    def call(self, ir):
+        # the address directlly after call instruction is pushed onto the stack
+        ret_addr = ir + 2
+        self.registers[7] -= 1
+        self.memory[self.registers[7]] = ret_addr
+
+        # pc is set to the address in the given register
+        # self.pc = self.registers[self.memory[ir + 1]]
+        reg_num = self.memory[ir + 1]
+        self.pc = self.registers[reg_num]
+
+    def ret(self, ir):
+        self.pop(ir)
+        self.pc = self.registers[self.memory[ir + 1]]
+
+    def add(self, ir):
+        # 2 operands reg1 and reg2
+        # store the result in reg1
+        self.registers[self.memory[ir + 1]] = self.registers[self.memory[ir + 1]] + self.registers[self.memory[ir + 2]] 
 
     def ram_read(self, MAR): # MAR ( Memory Address Register)
         return self.registers[MAR]
@@ -115,13 +137,10 @@ class CPU:
         """Run the CPU."""
         self.running = True
         while self.running:
-            # Read the value stored in the program counter to the IR 
-            # ( IR Instruction Register )
             ir = self.pc
 
             self.branchtable[self.memory[ir]](ir)
 
-            # increment pc
-            # mv_amt = (int(bin(self.memory[ir]), 2) >> 6) + 1
-            mv_amt = (self.memory[ir] >> 6) + 1
-            self.pc += mv_amt
+            if not (self.memory[ir] >> 4) & 1:
+                mv_amt = (self.memory[ir] >> 6) + 1
+                self.pc += mv_amt
